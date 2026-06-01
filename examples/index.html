@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyExampleGame</title>
+</head>
+
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script type="module">
+        import { PrepEngine, World, Rectangle, Circle, Transform, Camera, Utils } from '../dist/prep-engine.es.js';
+
+        const canvas = document.getElementById('gameCanvas');
+        const engine = new PrepEngine(canvas);
+        engine.init();
+
+        const ground = new Rectangle(new Transform(new Utils.Vec2(0, 0), 0, new Utils.Vec2(1000, 1000)), {
+            isStatic: true,
+            color: new Utils.RGBA(0, 255, 0, 1), // green
+            zIndex: 1
+        });
+        const player = new Circle(new Transform(new Utils.Vec2(0, 0), 0, new Utils.Vec2(10, 10)), {
+            color: new Utils.RGBA(255, 0, 0, 1), // red
+            zIndex: 10
+        });
+
+        const world = new World(new Camera({ target: player }));
+        world.addObject(ground);
+        world.addObject(player);
+        
+        // player controller WASD
+        window.addEventListener('keydown', (e) => {
+            const speed = 100;
+            if (e.key === 'w') player.velocity.y = -speed;
+            if (e.key === 's') player.velocity.y = speed;
+            if (e.key === 'a') player.velocity.x = -speed;
+            if (e.key === 'd') player.velocity.x = speed;
+        });
+
+        engine.setWorld(world);
+        engine.renderer.debug = true; // Enable debug mode to show AABBs and other info
+
+        engine.run();
+    </script>
+</body>
+</body>
+
+</html>
