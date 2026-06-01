@@ -4,7 +4,7 @@ Welcome — this folder contains the primary documentation for Prep Engine.
 
 Start here:
 
-- **Quickstart:** [Quickstart.md](Quickstart.md) — minimal boot example to run the engine.
+- **Quickstart:** [Quickstart.md](quickstart.md) — minimal boot example to run the engine.
 - **API Reference:** [API.md](API.md) — classes, methods, and primary properties.
 - **Physics:** [Physics.md](Physics.md) — design and usage of the built-in physics engine.
 - **Rendering:** [Rendering.md](Rendering.md) — renderer features and best practices.
