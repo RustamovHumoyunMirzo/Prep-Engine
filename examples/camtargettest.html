@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camtargettest</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script type="module">
+        import { PrepEngine, Camera, Transform, GameObject, World, Utils } from '../index.js';
+
+        const canvas = document.getElementById('gameCanvas');
+        const engine = new PrepEngine(canvas);
+        engine.init();
+
+        const target = new GameObject(new Transform(new Utils.Vec2(0, 0), 0, new Utils.Vec2(100, 100)), {
+            color: new Utils.RGBA(0, 0, 0, 1)
+        });
+        const camera = new Camera({ position: new Utils.Vec2(0, 0), zoom: 1, target: target, followSpeed: 10 });
+        const world = new World(camera);
+        world.addObject(target);
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                target.velocity.x += 100;
+            } else if (e.key === 'ArrowLeft') {
+                target.velocity.x -= 100;
+            } else if (e.key === 'ArrowUp') {
+                target.velocity.y -= 100;
+            } else if (e.key === 'ArrowDown') {
+                target.velocity.y += 100;
+            }
+        });
+
+        console.log('Camera target:', camera.target);
+
+        window.onload = () => {
+            engine.resizeCanvas();
+        };
+        window.onresize = () => {
+            engine.resizeCanvas();
+        };
+
+        engine.setWorld(world);
+        engine.run();
+    </script>
+</body>
+
+</html>

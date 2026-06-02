@@ -65,6 +65,10 @@ class World {
 
             obj.update?.(dt);
         }
+        // Update camera after objects so target transforms are up-to-date
+        if (this.mainCamera && typeof this.mainCamera.update === 'function') {
+            this.mainCamera.update(dt);
+        }
     }
 
     setMainCamera(camera) {
