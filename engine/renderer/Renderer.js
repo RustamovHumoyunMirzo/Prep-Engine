@@ -1,5 +1,6 @@
 import { Vec2 } from '../utils/units.js';
 import { Texture } from '../core/Texture.js';
+import { Lighting } from '../core/Lighting.js';
 
 class Renderer {
 	constructor(options = {}) {
@@ -8,6 +9,15 @@ class Renderer {
 		this.showAABB = options.showAABB ?? false;
 		this.showVelocity = options.showVelocity ?? false;
 		this.pixelRatio = options.pixelRatio || 1;
+		this.lighting = options.lighting || new Lighting(options.lightingOptions);
+	}
+
+	get lighing() {
+		return this.lighting;
+	}
+
+	set lighing(value) {
+		this.lighting = value;
 	}
 
 	// Render the world onto the canvas 2D context
@@ -65,7 +75,7 @@ class Renderer {
 			}
 		}
 
-		const objs = [...world.objects].filter(o => o && !o._destroyed && o.visible !== false && o.isActive());
+		const objs = this._collectRenderableObjects(world);
 
 		if (this.debug) {
 			console.log('[Renderer] drawing objects count=', objs.length, 'world.objects=', world.objects.length);
@@ -87,6 +97,10 @@ class Renderer {
 		}
 
 		ctx.restore(); // restore camera transform
+
+		if (this.lighting && typeof this.lighting.render === 'function') {
+			this.lighting.render(world, canvas, ctx);
+		}
 	}
 
 	_drawObject(ctx, obj) {
@@ -112,6 +126,26 @@ class Renderer {
 		}
 
 		ctx.restore();
+	}
+
+	_collectRenderableObjects(world) {
+		const out = [];
+		const seen = new Set();
+		const visit = (obj) => {
+			if (!obj || seen.has(obj) || obj._destroyed) return;
+			seen.add(obj);
+
+			if (!obj.isLight && obj.visible !== false && (typeof obj.isActive !== 'function' || obj.isActive())) {
+				out.push(obj);
+			}
+
+			if (Array.isArray(obj.children)) {
+				for (const child of obj.children) visit(child);
+			}
+		};
+
+		for (const obj of world.objects || []) visit(obj);
+		return out;
 	}
 
 	_drawRect(ctx, obj, w, h) {

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soldier Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script type="module">
+        import { PrepEngine, Camera, Transform, GameObject, World, Utils, Texture, SpotLight, Rectangle, Ray } from '../index.js';
+
+        const canvas = document.getElementById('gameCanvas');
+        const engine = new PrepEngine(canvas);
+        engine.init();
+
+        const texture = new Texture("soldier.png");
+        const player = new GameObject(new Transform(new Utils.Vec2(0, 0)), {
+            mass: 0,
+            size: new Utils.Vec2(1, 1)
+        });
+        player.setVisibility(false);
+
+        const soldier = new GameObject(new Transform(new Utils.Vec2(0, 0), 0, new Utils.Vec2(100, 100)), {
+            texture: texture,
+            size: new Utils.Vec2(1.4, 1)
+        });
+
+        const flashlight = new SpotLight({
+            position: new Utils.Vec2(0, 0),
+            radius: 420,
+            angle: Math.PI / 3,
+            intensity: 1,
+            softness: 0.9,
+            color: new Utils.RGBA(255, 238, 196, 1)
+        });
+
+        player.addChild(soldier);
+        player.addChild(flashlight);
+
+        const camera = new Camera({ position: new Utils.Vec2(0, 0), zoom: 1, target: player, followSpeed: 10 });
+        const world = new World(camera);
+        world.addObject(player);
+
+        const walls = [
+            new Rectangle(new Transform(new Utils.Vec2(250, 0)), {
+                size: new Utils.Vec2(90, 280),
+                color: new Utils.RGBA(70, 75, 88, 1),
+                blocksLight: true,
+                layer: 1,
+                mass: 0
+            }),
+            new Rectangle(new Transform(new Utils.Vec2(-220, -120)), {
+                size: new Utils.Vec2(260, 70),
+                color: new Utils.RGBA(82, 68, 62, 1),
+                blocksLight: true,
+                layer: 1,
+                mass: 0
+            }),
+            new Rectangle(new Transform(new Utils.Vec2(-80, 190)), {
+                size: new Utils.Vec2(140, 120),
+                color: new Utils.RGBA(58, 82, 72, 1),
+                blocksLight: true,
+                layer: 1,
+                mass: 0
+            })
+        ];
+
+        for (const wall of walls) world.addObject(wall);
+
+        const enemy = new Rectangle(new Transform(new Utils.Vec2(170, 90)), {
+            size: new Utils.Vec2(46, 64),
+            color: new Utils.RGBA(160, 35, 35, 1),
+            mass: 0,
+            layer: 2
+        });
+        enemy.setVisibility(false);
+        world.addObject(enemy);
+
+        const angleDelta = (a, b) => {
+            let d = (a - b) % (Math.PI * 2);
+            if (d < -Math.PI) d += Math.PI * 2;
+            if (d > Math.PI) d -= Math.PI * 2;
+            return d;
+        };
+
+        const isPointLit = (point) => {
+            const origin = flashlight.transform.position;
+            const toPoint = point.subtract(origin);
+            const distance = toPoint.magnitude();
+            if (distance <= 0 || distance > flashlight.radius) return false;
+
+            const flashlightDirection = flashlight.direction + flashlight.transform.rotation;
+            const pointDirection = Math.atan2(toPoint.y, toPoint.x);
+            if (Math.abs(angleDelta(pointDirection, flashlightDirection)) > flashlight.angle * 0.5) return false;
+
+            const ray = new Ray(origin, toPoint.normalize(), distance, { mask: 1 << 1 });
+            return world.raycast(ray, { first: true }) === null;
+        };
+
+        const updateEnemyVisibility = () => {
+            const aabb = enemy.getAABB();
+            const points = [
+                enemy.transform.position,
+                new Utils.Vec2(aabb.min.x, aabb.min.y),
+                new Utils.Vec2(aabb.max.x, aabb.min.y),
+                new Utils.Vec2(aabb.max.x, aabb.max.y),
+                new Utils.Vec2(aabb.min.x, aabb.max.y)
+            ];
+
+            enemy.setVisibility(points.some(isPointLit));
+        };
+
+        engine.update = () => {
+            updateEnemyVisibility();
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                player.transform.position.x += 10;
+                player.transform.rotation = 0;
+            } else if (e.key === 'ArrowLeft') {
+                player.transform.position.x -= 10;
+                player.transform.rotation = Math.PI;
+            } else if (e.key === 'ArrowUp') {
+                player.transform.position.y -= 10;
+                player.transform.rotation = -Math.PI / 2;
+            } else if (e.key === 'ArrowDown') {
+                player.transform.position.y += 10;
+                player.transform.rotation = Math.PI / 2;
+            }
+        });
+
+        window.onload = () => {
+            engine.resizeCanvas();
+        };
+        window.onresize = () => {
+            engine.resizeCanvas();
+        };
+
+        engine.setWorld(world);
+
+        engine.run();
+    </script>
+</body>
+
+</html>

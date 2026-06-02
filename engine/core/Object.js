@@ -1,5 +1,5 @@
 import { randomUUID } from '../utils/random.js';
-import { Vec2 } from '../utils/units.js';
+import { Vec2, RGBA } from '../utils/units.js';
 
 class Transform {
     constructor(position, rotation, scale) {
@@ -41,6 +41,8 @@ class GameObject {
         this.texture = config?.texture || null; // Texture class
         this.color = config?.color || new RGBA(255, 255, 255, 1); // Fill color (if texture is not set)
         this.primitiveType = null; // "rectangle", "circle", etc. for simple shapes without textures
+        this.blocksLight = config?.blocksLight ?? false;
+        this.castsShadow = config?.castsShadow ?? this.blocksLight;
 
         // Collision layers: `layer` is an integer index (0..31), `mask` is a bitmask
         this.layer = config?.layer ?? 0;
@@ -85,9 +87,13 @@ class GameObject {
 
         const p = this.parent.transform;
 
-        // position (simple additive inheritance)
-        this.transform.position.x = p.position.x + this.localTransform.position.x;
-        this.transform.position.y = p.position.y + this.localTransform.position.y;
+        const localX = this.localTransform.position.x * p.scale.x;
+        const localY = this.localTransform.position.y * p.scale.y;
+        const cos = Math.cos(p.rotation);
+        const sin = Math.sin(p.rotation);
+
+        this.transform.position.x = p.position.x + localX * cos - localY * sin;
+        this.transform.position.y = p.position.y + localX * sin + localY * cos;
 
         // rotation (additive)
         this.transform.rotation = p.rotation + this.localTransform.rotation;
@@ -130,10 +136,28 @@ class GameObject {
     }
 
     addChild(child) {
-        if (this.children.includes(child)) return;
+        if (!child || child === this || this.children.includes(child)) return;
+        if (this.isLight) return;
+        if (child.children?.includes?.(this)) return;
+
+        if (child.parent) child.parent.removeChild(child);
+
+        if (child.localTransform === child.transform) {
+            child.localTransform = new Transform(
+                child.transform.position.clone(),
+                child.transform.rotation,
+                child.transform.scale.clone()
+            );
+            child.transform = new Transform(
+                child.localTransform.position.clone(),
+                child.localTransform.rotation,
+                child.localTransform.scale.clone()
+            );
+        }
 
         child.parent = this;
         this.children.push(child);
+        return child;
     }
 
     removeChild(child) {
@@ -143,6 +167,7 @@ class GameObject {
 
         child.parent = null;
         this.children.splice(index, 1);
+        return child;
     }
 
     // ===== Event handling =====
