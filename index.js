@@ -15,4 +15,4 @@ const Utils = {
 };
 
 export { PrepEngine, World, GameObject, Transform, Utils, PhysicsEngine, Camera, Texture, Rectangle, Circle, Ray, Renderer, EventEmitter, Event };
-export const version = '0.1.0';
+export const version = '0.2.0';

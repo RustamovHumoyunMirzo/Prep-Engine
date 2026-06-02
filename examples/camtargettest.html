@@ -38,19 +38,20 @@
         const target = new GameObject(new Transform(new Utils.Vec2(0, 0), 0, new Utils.Vec2(100, 100)), {
             color: new Utils.RGBA(0, 0, 0, 1)
         });
+        // Use a higher followSpeed for tighter camera tracking of velocity-driven motion
         const camera = new Camera({ position: new Utils.Vec2(0, 0), zoom: 1, target: target, followSpeed: 10 });
         const world = new World(camera);
         world.addObject(target);
 
         window.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowRight') {
-                target.velocity.x += 100;
+                target.transform.position.x += 10;
             } else if (e.key === 'ArrowLeft') {
-                target.velocity.x -= 100;
+                target.transform.position.x -= 10;
             } else if (e.key === 'ArrowUp') {
-                target.velocity.y -= 100;
+                target.transform.position.y -= 10;
             } else if (e.key === 'ArrowDown') {
-                target.velocity.y += 100;
+                target.transform.position.y += 10;
             }
         });
 
@@ -64,6 +65,7 @@
         };
 
         engine.setWorld(world);
+
         engine.run();
     </script>
 </body>
