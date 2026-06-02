@@ -13,6 +13,8 @@ Latest release: 0.1.0
 - Added light blockers with `blocksLight`, `castsShadow`, and the `light-blocker` tag.
 - Added child-object rendering and child light discovery.
 - Added flashlight example behavior in `examples/soldier.html`.
+- Added hover event
+- Added particle system
 
 ### Changed
 - Renderer now creates lighting internally and renders it after world objects.

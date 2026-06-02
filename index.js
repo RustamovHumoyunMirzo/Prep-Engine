@@ -8,6 +8,7 @@ import { Texture } from './engine/core/Texture.js';
 import { Renderer } from './engine/renderer/Renderer.js';
 import { EventEmitter, Event } from './engine/core/Events.js';
 import { PointLight, SpotLight, DirectionalLight } from './engine/core/Lighting.js';
+import { Particle, ParticleEmitter } from './engine/core/Particle.js';
 
 const Utils = {
     randomUUID,
@@ -15,5 +16,5 @@ const Utils = {
     RGBA
 };
 
-export { PrepEngine, World, GameObject, Transform, Utils, PhysicsEngine, Camera, Texture, Rectangle, Circle, Ray, Renderer, EventEmitter, Event, PointLight, SpotLight, DirectionalLight };
+export { PrepEngine, World, GameObject, Transform, Utils, PhysicsEngine, Camera, Texture, Rectangle, Circle, Ray, Renderer, EventEmitter, Event, PointLight, SpotLight, DirectionalLight, Particle, ParticleEmitter };
 export const version = '0.2.0';

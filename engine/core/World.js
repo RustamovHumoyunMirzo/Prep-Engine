@@ -1,6 +1,7 @@
 import { PhysicsEngine } from '../physics/Core.js';
 import { Vec2 } from '../utils/units.js';
 import { EventEmitter } from './Events.js';
+import { ParticleEmitter } from './Particle.js';
 
 class World {
     constructor(camera, config) {
@@ -8,6 +9,8 @@ class World {
         this.mainCamera = camera || null;
         this.physics = new PhysicsEngine(config);
         this.events = new EventEmitter();
+        this.particleEmitters = [];
+        this.particleEmitter = this.addParticleEmitter(new ParticleEmitter());
     }
 
     setPhysicsEngine(physics) {
@@ -69,10 +72,38 @@ class World {
         if (this.mainCamera && typeof this.mainCamera.update === 'function') {
             this.mainCamera.update(dt);
         }
+        for (const emitter of this.particleEmitters) {
+            if (emitter?.active !== false && typeof emitter.update === 'function') emitter.update(dt);
+        }
     }
 
     setMainCamera(camera) {
         this.mainCamera = camera;
+    }
+
+    addParticleEmitter(emitter = new ParticleEmitter()) {
+        if (!emitter) return null;
+        if (!this.particleEmitters.includes(emitter)) {
+            emitter.setWorld?.(this);
+            this.particleEmitters.push(emitter);
+        }
+        return emitter;
+    }
+
+    removeParticleEmitter(emitter) {
+        const index = this.particleEmitters.indexOf(emitter);
+        if (index === -1) return null;
+        this.particleEmitters.splice(index, 1);
+        emitter.setWorld?.(null);
+        return emitter;
+    }
+
+    clearParticles() {
+        for (const emitter of this.particleEmitters) emitter.clear?.();
+    }
+
+    getParticles() {
+        return this.particleEmitters.flatMap(emitter => emitter.getParticles?.() ?? []);
     }
 
     // Subscribe to world-level events (when not handled by any object)

@@ -88,6 +88,8 @@ class Renderer {
 			this._drawObject(ctx, obj);
 		}
 
+		this._drawParticleEmitters(ctx, world);
+
 		// debug overlays
 		if (this.debug) {
 			for (const obj of objs) {
@@ -200,6 +202,52 @@ class Renderer {
 
 		ctx.restore();
 		ctx.globalAlpha = 1.0;
+	}
+
+	_drawParticles(ctx, particles) {
+		if (!particles || particles.length === 0) return;
+		const sorted = particles.slice().sort((a, b) => (a.zindex || 0) - (b.zindex || 0));
+		for (const p of sorted) {
+			ctx.save();
+			const previousComposite = ctx.globalCompositeOperation;
+			ctx.translate(p.position.x, p.position.y);
+			ctx.rotate(p.rotation || 0);
+			const size = p.size || 4;
+			const width = size?.x ?? size;
+			const height = size?.y ?? size;
+			const halfW = width * 0.5;
+			const halfH = height * 0.5;
+			ctx.globalCompositeOperation = p.blendMode || 'source-over';
+			ctx.globalAlpha = p.opacity ?? 1.0;
+			if (p.texture && typeof p.texture.isReady === 'function' && p.texture.isReady()) {
+				// draw texture centered
+				const region = p.texture.getRegion?.();
+				if (region) ctx.drawImage(p.texture.image, region.x, region.y, region.width, region.height, -halfW, -halfH, width, height);
+				else ctx.drawImage(p.texture.image, -halfW, -halfH, width, height);
+			} else {
+				ctx.fillStyle = p.color?.toRGBAString?.() || 'white';
+				if (p.primitiveShape === 'circle') {
+					ctx.beginPath();
+					ctx.arc(0, 0, Math.max(width, height) * 0.5, 0, Math.PI * 2);
+					ctx.fill();
+				} else {
+					ctx.fillRect(-halfW, -halfH, width, height);
+				}
+			}
+			ctx.globalCompositeOperation = previousComposite;
+			ctx.restore();
+		}
+	}
+
+	_drawParticleEmitters(ctx, world) {
+		const emitters = Array.isArray(world.particleEmitters)
+			? world.particleEmitters
+			: (world.particleEmitter ? [world.particleEmitter] : []);
+		for (const emitter of emitters) {
+			if (emitter && typeof emitter.getParticles === 'function') {
+				this._drawParticles(ctx, emitter.getParticles());
+			}
+		}
 	}
 
 	_drawAABB(ctx, obj) {

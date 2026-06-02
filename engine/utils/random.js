@@ -2,4 +2,9 @@ function randomUUID() {
     return crypto.randomUUID();
 }
 
-export { randomUUID };
+// helper: random in range [min, max)
+function randRange(min, max) {
+    return min + Math.random() * (max - min);
+}
+
+export { randomUUID, randRange };
