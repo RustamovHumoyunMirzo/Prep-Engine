@@ -1,4 +1,6 @@
 import { Renderer } from '../renderer/Renderer.js';
+import { Event } from './Events.js';
+import { Vec2 } from '../utils/units.js';
 
 class PrepEngine {
     constructor(canvas) {
@@ -13,6 +15,7 @@ class PrepEngine {
 
         this.world = null;
         this.renderer = new Renderer();
+        this._onCanvasClick = this._onCanvasClick.bind(this);
     }
 
     init() {
@@ -20,6 +23,30 @@ class PrepEngine {
 
         this._lastTime = 0;
         this._running = false;
+        // attach input listeners for events (click)
+        if (this.canvas && !this._listening) {
+            this.canvas.addEventListener('click', this._onCanvasClick);
+            this._listening = true;
+        }
+    }
+
+    _onCanvasClick(e) {
+        if (!this.world) return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        const screenX = e.clientX - rect.left;
+        const screenY = e.clientY - rect.top;
+        const screenPos = new Vec2(screenX, screenY);
+
+        let worldPos = screenPos.clone();
+        if (this.world.mainCamera && typeof this.world.mainCamera.screenToWorld === 'function') {
+            worldPos = this.world.mainCamera.screenToWorld(screenPos, this.canvas);
+        }
+
+        const ev = new Event({ type: 'click', position: worldPos, screenPosition: screenPos });
+
+        // dispatch into world for hit-testing and propagation
+        this.world.dispatchEvent(ev);
     }
 
     run() {
@@ -63,6 +90,13 @@ class PrepEngine {
 
     isRunning() {
         return this._running;
+    }
+
+    resizeCanvas() {
+        if (this.canvas) {
+            this.canvas.width = this.canvas.offsetWidth;
+            this.canvas.height = this.canvas.offsetHeight;
+        }
     }
 }
 

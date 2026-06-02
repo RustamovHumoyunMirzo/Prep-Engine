@@ -22,10 +22,19 @@ class Renderer {
 		}
 
 		// clear
-		ctx.save();
-		ctx.fillStyle = this.clearColor;
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		ctx.restore();
+		// always clear the canvas first to avoid ghosting from previous frames
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		// optionally fill with a background color if provided (non-transparent)
+		if (this.clearColor) {
+			// detect fully transparent value quickly by checking string contains 'rgba' with alpha 0 or 'transparent'
+			const isTransparent = String(this.clearColor).includes('rgba(0,0,0,0)') || String(this.clearColor).toLowerCase() === 'transparent';
+			if (!isTransparent) {
+				ctx.save();
+				ctx.fillStyle = this.clearColor;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				ctx.restore();
+			}
+		}
 
 		// camera transform
 		const cam = world.mainCamera;
@@ -41,7 +50,28 @@ class Renderer {
 		}
 
 		// sort objects by zindex
-		const objs = [...world.objects].filter(o => o.visible !== false && o.isActive());
+		// Purge any destroyed objects from the world's list to avoid rendering ghosts
+		if (Array.isArray(world.objects)) {
+			for (let i = world.objects.length - 1; i >= 0; --i) {
+				const o = world.objects[i];
+				if (!o) {
+					world.objects.splice(i, 1);
+					continue;
+				}
+				if (o._destroyed) {
+					world.objects.splice(i, 1);
+					continue;
+				}
+			}
+		}
+
+		const objs = [...world.objects].filter(o => o && !o._destroyed && o.visible !== false && o.isActive());
+
+		if (this.debug) {
+			console.log('[Renderer] drawing objects count=', objs.length, 'world.objects=', world.objects.length);
+			for (const o of objs) console.log('[Renderer] draw:', o.id ?? '<no-id>', 'pos=', o.transform?.position?.toString?.() ?? '<no-pos>', 'visible=', o.visible, '_destroyed=', o._destroyed);
+			console.log('[Renderer] purge complete; remaining world.objects length=', world.objects.length);
+		}
 		objs.sort((a, b) => (a.zindex || 0) - (b.zindex || 0));
 
 		for (const obj of objs) {

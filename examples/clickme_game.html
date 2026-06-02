@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Click Me Game</title>
+</head>
+
+<body>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        #hud {
+            position: absolute;
+            left: 12px;
+            top: 12px;
+            color: white;
+            z-index: 10;
+        }
+
+        #hud .box {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100vh;
+            display: block;
+            background: #222;
+        }
+    </style>
+
+    <canvas id="gameCanvas" width="900" height="700"></canvas>
+
+    <div id="hud">
+        <div id="scoreBox" class="box">Score: <span id="score">0</span></div>
+        <div id="timeBox" class="box">Time: <span id="time">30</span>s</div>
+    </div>
+
+    <script type="module">
+        import { PrepEngine, World, GameObject, Transform, Camera, Utils } from '../index.js';
+
+        const canvas = document.getElementById('gameCanvas');
+        const scoreEl = document.getElementById('score');
+        const timeEl = document.getElementById('time');
+
+        const engine = new PrepEngine(canvas);
+        engine.init();
+
+        const camera = new Camera({ position: new Utils.Vec2(0, 0), zoom: 1 });
+        const world = new World(camera);
+
+        engine.setWorld(world);
+        // enable renderer debug logs to help diagnose rendering issues (set false to silence)
+        engine.renderer.debug = false;
+        engine.renderer.showAABB = false; // toggle to show object bounding boxes for debugging
+
+        // Game state
+        let score = 0;
+        let timeLeft = 30; // seconds
+        let running = true;
+
+        function updateHUD() {
+            scoreEl.textContent = String(score);
+            timeEl.textContent = String(Math.max(0, Math.ceil(timeLeft)));
+        }
+
+        // Create the clickable target
+        function makeTarget() {
+            const t = new GameObject(new Transform(new Utils.Vec2(0, 0), 0, new Utils.Vec2(1, 1)), {
+                size: new Utils.Vec2(80, 80),
+                color: new Utils.RGBA(255, 80, 80, 1),
+                collisionShape: 'circle'
+            });
+
+            // mark this object as the click target so we can keep only one alive
+            t.addTag('clickTarget');
+
+            // When clicked, increase score and respawn
+            t.on('click', (ev) => {
+                if (!running) return;
+                score += 1;
+                ev.stopPropagation();
+                respawnTarget(t);
+                updateHUD();
+            });
+
+            return t;
+        }
+
+        function respawnTarget(target) {
+            // remove any other stray targets
+            for (const obj of [...world.objects]) {
+                if (obj !== target && obj.hasTag && obj.hasTag('clickTarget')) {
+                    if (typeof world.destroyObject === 'function') world.destroyObject(obj);
+                    else world.removeObject(obj);
+                }
+            }
+            // choose random screen coords inside canvas (leave 10% margin)
+            const marginX = canvas.width * 0.1;
+            const marginY = canvas.height * 0.1;
+            const sx = marginX + Math.random() * (canvas.width - marginX * 2);
+            const sy = marginY + Math.random() * (canvas.height - marginY * 2);
+            const screenPos = new Utils.Vec2(sx, sy);
+            const worldPos = camera.screenToWorld(screenPos, canvas);
+
+            // update both local and world transform positions to avoid stale positions
+            if (target.localTransform && target.localTransform.position) target.localTransform.position.copy(worldPos);
+            if (target.transform && target.transform.position) target.transform.position.copy(worldPos);
+            target.visible = true;
+        }
+
+        const target = makeTarget();
+        world.addObject(target);
+        respawnTarget(target);
+
+        // Game loop: tick down timer and stop when 0
+        const originalUpdate = engine.update;
+        engine.update = (dt) => {
+            if (!running) return;
+            timeLeft -= dt;
+            if (timeLeft <= 0) {
+                running = false;
+                target.visible = false;
+            }
+            updateHUD();
+            originalUpdate(dt);
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'u') engine.resizeCanvas();
+        });
+
+        // Start engine
+        engine.run();
+
+        // initial HUD
+        updateHUD();
+    </script>
+</body>
+
+</html>

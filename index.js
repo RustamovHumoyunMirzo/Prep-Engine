@@ -6,6 +6,7 @@ import { Vec2, RGBA } from './engine/utils/units.js';
 import { PhysicsEngine } from './engine/physics/Core.js';
 import { Texture } from './engine/core/Texture.js';
 import { Renderer } from './engine/renderer/Renderer.js';
+import { EventEmitter, Event } from './engine/core/Events.js';
 
 const Utils = {
     randomUUID,
@@ -13,5 +14,5 @@ const Utils = {
     RGBA
 };
 
-export { PrepEngine, World, GameObject, Transform, Utils, PhysicsEngine, Camera, Texture, Rectangle, Circle, Ray, Renderer };
+export { PrepEngine, World, GameObject, Transform, Utils, PhysicsEngine, Camera, Texture, Rectangle, Circle, Ray, Renderer, EventEmitter, Event };
 export const version = '0.1.0';

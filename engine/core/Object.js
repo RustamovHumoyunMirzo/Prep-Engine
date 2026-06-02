@@ -15,6 +15,7 @@ class GameObject {
         this.localTransform = transform || new Transform();
         this.transform = transform || new Transform();
         this.active = true;
+        this._events = new Map();
         this.tags = new Set();
         this.parent = null;
         this.children = [];
@@ -142,6 +143,51 @@ class GameObject {
 
         child.parent = null;
         this.children.splice(index, 1);
+    }
+
+    // ===== Event handling =====
+    on(eventType, handler) {
+        if (!this._events.has(eventType)) this._events.set(eventType, new Set());
+        this._events.get(eventType).add(handler);
+    }
+
+    off(eventType, handler) {
+        const set = this._events.get(eventType);
+        if (!set) return;
+        set.delete(handler);
+    }
+
+    _dispatchEventLocal(event) {
+        const set = this._events.get(event.type);
+        if (!set) return;
+        for (const h of set) {
+            try { h(event); } catch (e) { console.error(e); }
+            if (event.consumed) return;
+        }
+    }
+
+    // Called by the world when propagating an event; bubbles up parents until consumed
+    _handleEventChain(event) {
+        let node = this;
+        while (node && !event.consumed) {
+            node._dispatchEventLocal(event);
+            node = node.parent;
+        }
+    }
+
+    // Point containment helper (world space Vec2)
+    containsPoint(worldPos) {
+        if (this.collisionShape === 'box') {
+            const aabb = this.getAABB();
+            return worldPos.x >= aabb.min.x && worldPos.x <= aabb.max.x && worldPos.y >= aabb.min.y && worldPos.y <= aabb.max.y;
+        } else if (this.collisionShape === 'circle') {
+            const center = this.transform.position;
+            const radius = (this.size?.x ?? this.size?.y ?? 0) * 0.5;
+            const dx = worldPos.x - center.x;
+            const dy = worldPos.y - center.y;
+            return dx * dx + dy * dy <= radius * radius;
+        }
+        return false;
     }
 
     // ===== Physics helpers =====

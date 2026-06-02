@@ -1,11 +1,13 @@
 import { PhysicsEngine } from '../physics/Core.js';
 import { Vec2 } from '../utils/units.js';
+import { EventEmitter } from './Events.js';
 
 class World {
     constructor(camera, config) {
         this.objects = [];
         this.mainCamera = camera || null;
         this.physics = new PhysicsEngine(config);
+        this.events = new EventEmitter();
     }
 
     setPhysicsEngine(physics) {
@@ -20,6 +22,36 @@ class World {
         const index = this.objects.indexOf(obj);
         if (index !== -1) {
             this.objects.splice(index, 1);
+        }
+
+        // mark as destroyed as well to be safe
+        try {
+            obj.active = false;
+            obj.visible = false;
+            obj._destroyed = true;
+        } catch (e) {}
+    }
+
+    // safer removal: mark object destroyed and clean references
+    destroyObject(obj) {
+        const index = this.objects.indexOf(obj);
+        if (index !== -1) {
+            this.objects.splice(index, 1);
+        }
+
+        try {
+            obj.active = false;
+            obj.visible = false;
+            obj._destroyed = true;
+            if (obj.parent) obj.parent.removeChild(obj);
+            // detach children
+            if (Array.isArray(obj.children)) {
+                for (const c of obj.children.slice()) {
+                    obj.removeChild(c);
+                }
+            }
+        } catch (e) {
+            // ignore if object shape differs
         }
     }
 
@@ -37,6 +69,53 @@ class World {
 
     setMainCamera(camera) {
         this.mainCamera = camera;
+    }
+
+    // Subscribe to world-level events (when not handled by any object)
+    on(eventType, handler) {
+        this.events.on(eventType, handler);
+    }
+
+    off(eventType, handler) {
+        this.events.off(eventType, handler);
+    }
+
+    // Return objects under a world-space point, ordered by descending zindex (top first)
+    getObjectsAtPoint(worldPos) {
+        const hits = [];
+        for (const obj of this.objects) {
+            if (!obj.isActive() || !obj.visible) continue;
+            if (typeof obj.containsPoint !== 'function') continue;
+            if (obj.containsPoint(worldPos)) hits.push(obj);
+        }
+        hits.sort((a, b) => (b.zindex ?? 0) - (a.zindex ?? 0));
+        return hits;
+    }
+
+    // Dispatch an event into the world. Event object is expected to have .type and .position (world Vec2)
+    dispatchEvent(event) {
+        if (!event || !event.type) return;
+
+        // Determine target: topmost hit or null
+        let target = null;
+        if (event.position) {
+            const hits = this.getObjectsAtPoint(event.position);
+            if (hits.length > 0) target = hits[0];
+        }
+
+        event.target = target;
+
+        if (target) {
+            // let the object and its parents handle and possibly consume the event
+            target._handleEventChain(event);
+            if (!event.consumed) {
+                // if not consumed, emit at world level
+                this.events.emit(event.type, event);
+            }
+        } else {
+            // no target: emit globally
+            this.events.emit(event.type, event);
+        }
     }
 
     findObjectById(id) {
