@@ -31,6 +31,7 @@ function resolveValue(value, fallback, context) {
     return cloneValue(value);
 }
 
+
 function resolveVec2(value, fallback, context) {
     const resolved = resolveValue(value, fallback, context);
     return cloneVec2(resolved, fallback);

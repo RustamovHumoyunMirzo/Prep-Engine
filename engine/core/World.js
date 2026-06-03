@@ -102,6 +102,39 @@ class World {
         for (const emitter of this.particleEmitters) emitter.clear?.();
     }
 
+    // Convenience helpers for particle usage to reduce boilerplate in examples
+    // Ensure a default emitter exists and emit `count` particles with optional overrides
+    emit(count = 1, overrides = {}) {
+        if (!this.particleEmitter) this.particleEmitter = this.addParticleEmitter(new ParticleEmitter());
+        return this.particleEmitter.emit(count, overrides);
+    }
+
+    // Emit particles at a specific world position (accepts Vec2 or [x,y])
+    emitAt(position, count = 1, overrides = {}) {
+        let pos = position;
+        try {
+            // normalize arrays or objects that look like {x,y}
+            if (Array.isArray(position)) pos = new Vec2(position[0] ?? 0, position[1] ?? 0);
+            else if (position && typeof position.x === 'number' && typeof position.y === 'number') pos = position.clone?.() ?? new Vec2(position.x, position.y);
+        } catch (e) {
+            pos = new Vec2(0, 0);
+        }
+        return this.emit(count, { ...overrides, position: pos });
+    }
+
+    // Emit a burst of particles (alias)
+    burst(count = 10, overrides = {}) {
+        if (!this.particleEmitter) this.particleEmitter = this.addParticleEmitter(new ParticleEmitter());
+        return this.particleEmitter.burst(count, overrides);
+    }
+
+    // Set the default particle template used by the world's default emitter
+    setParticleTemplate(particle) {
+        if (!this.particleEmitter) this.particleEmitter = this.addParticleEmitter(new ParticleEmitter());
+        this.particleEmitter.setParticle(particle);
+        return this.particleEmitter;
+    }
+
     getParticles() {
         return this.particleEmitters.flatMap(emitter => emitter.getParticles?.() ?? []);
     }
