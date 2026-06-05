@@ -4,7 +4,7 @@ Prep Engine is a lightweight, top-down 2D game engine written in plain JavaScrip
 
 This repository is intentionally minimal and focused on being a clean, easy-to-read starting point for prototyping and learning engine systems.
 
-Contributing
+**Contributing**
 - Keep the code simple and readable. This project prefers clarity over micro-optimizations.
 - Add tests or examples to [`examples/`](examples/) when you add new APIs.
 
